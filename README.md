@@ -13,7 +13,6 @@ Command line parameters
 * -hdr [int]      : Image is a HDR image. Disabling with will assume the image is in sRGB (default 1 i.e. enabled)
 * -t [int]        : number of threads to use (defualt is all)
 * -affinity [int] : Enable affinity. This pins vertual threads to physical cores and can improve performance (default 0 i.e. disabled)
-No input image could be loaded
 * -h/--help : Lists command line parameters
 
 You need to at least have an input and output for the app to run. If you also have them, you can add an albedo AOV or albedo and normal AOVs to improve the denoising. All images should be the same resolutions, not meeting this requirement will lead to unexpected results (likely a crash).
@@ -23,7 +22,7 @@ For best results provide as many of the AOVs as possible to the denoiser. Genera
 Please refer to the originial OIDN repository [here](https://github.com/OpenImageDenoise/oidn) for more information.
 
 ## Examples
-Here is a quick example scene that uses the image from teh original OIDN repository. These can can also be found in the image folder of this repository.
+Here is a quick example scene that uses the image from the original OIDN repository. These can can also be found in the image folder of this repository.
 
 ### Noisy image
 <p align="center">
