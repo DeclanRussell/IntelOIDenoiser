@@ -5,6 +5,7 @@
 #include <OpenImageIO\imagebuf.h>
 #include <stdio.h>
 #include <exception>
+#include <time.h>
 
 #define DENOISER_MAJOR_VERSION 1
 #define DENOISER_MINOR_VERSION 0
@@ -103,6 +104,7 @@ int main(int argc, char *argv[])
     std::string out_path;
     bool affinity = false;
     bool hdr = true;
+    unsigned int num_runs = 1;
     int num_threads = 0;
     if (argc == 1)
     {
@@ -195,6 +197,13 @@ int main(int argc, char *argv[])
             std::string num_threads_string( argv[i] );
             num_threads = std::stoi(num_threads_string);
             std::cout<<"Number of threads set to "<<num_threads<<std::endl;
+        }
+        else if (arg == "-repeat")
+        {
+            i++;
+            std::string repeat_string( argv[i] );
+            num_runs = std::max(std::stoi(repeat_string), 1);
+            std::cout<<"Number of repeats set to "<<num_runs<<std::endl;
         }
         else if (arg == "-h" || arg == "--help")
         {
@@ -375,9 +384,25 @@ int main(int argc, char *argv[])
         filter.commit();
 
         // Execute denoise
-        std::cout<<"Denoising..."<<std::endl;
-        filter.execute();
-        std::cout<<"Denoising complete"<<std::endl;
+        int sum = 0;
+        for (unsigned int i = 0; i < num_runs; i++)
+        {
+            std::cout<<"Denoising..."<<std::endl;
+            clock_t start = clock(), diff;
+            filter.execute();
+            diff = clock() - start;
+            int msec = diff * 1000 / CLOCKS_PER_SEC;
+            if (num_runs > 1)
+                std::cout<<"Denoising run "<<i<<" complete in "<<msec/1000<<"."<<std::setfill('0')<<std::setw(3)<<msec%1000<<" seconds"<<std::endl;
+            else
+                std::cout<<"Denoising complete in "<<msec/1000<<"."<<std::setfill('0')<<std::setw(3)<<msec%1000<<" seconds"<<std::endl;
+            sum += msec;
+        }
+        if (num_runs > 1)
+        {
+            sum /= num_runs;
+            std::cout<<"Denoising avg of "<<num_runs<<" complete in "<<sum/1000<<"."<<std::setfill('0')<<std::setw(3)<<sum%1000<<" seconds"<<std::endl;    
+        }
 
     }
     catch (const std::exception& e)
