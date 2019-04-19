@@ -132,6 +132,7 @@ void printParams()
     std::cout<<"-hdr [int]      : Image is a HDR image. Disabling with will assume the image is in sRGB (default 1 i.e. enabled)"<<std::endl;
     std::cout<<"-t [int]        : number of threads to use (defualt is all)"<<std::endl;
     std::cout<<"-affinity [int] : Enable affinity. This pins vertual threads to physical cores and can improve performance (default 0 i.e. disabled)"<<std::endl;
+    std::cout<<"-repeat [int]   : Execute the denoiser N times. Useful for profiling."<<std::endl;
 }
 
 int main(int argc, char *argv[])
