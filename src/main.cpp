@@ -380,7 +380,7 @@ int main(int argc, char *argv[])
         std::cout<<"Denoising complete"<<std::endl;
 
     }
-    catch (std::exception e)
+    catch (const std::exception& e)
     {
         std::cerr<<"[OIDN]: "<<e.what()<<std::endl;
         cleanup();
