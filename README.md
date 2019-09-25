@@ -14,6 +14,7 @@ Command line parameters
 * -t [int]        : number of threads to use (defualt is all)
 * -affinity [int] : Enable affinity. This pins vertual threads to physical cores and can improve performance (default 0 i.e. disabled)
 * -repeat [int]   : Execute the denoiser N times. Useful for profiling.
+* -maxmem [int]   : Maximum memory size used by the denoiser in MB
 * -h/--help : Lists command line parameters
 
 You need to at least have an input and output for the app to run. If you also have them, you can add an albedo AOV or albedo and normal AOVs to improve the denoising. All images should be the same resolutions, not meeting this requirement will lead to unexpected results (likely a crash).

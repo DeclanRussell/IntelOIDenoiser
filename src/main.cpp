@@ -14,7 +14,7 @@
 #endif
 
 #define DENOISER_MAJOR_VERSION 1
-#define DENOISER_MINOR_VERSION 1
+#define DENOISER_MINOR_VERSION 2
 
 // Our global image handles
 OIIO::ImageBuf* input_beauty = nullptr;
@@ -133,6 +133,7 @@ void printParams()
     std::cout<<"-t [int]        : number of threads to use (defualt is all)"<<std::endl;
     std::cout<<"-affinity [int] : Enable affinity. This pins vertual threads to physical cores and can improve performance (default 0 i.e. disabled)"<<std::endl;
     std::cout<<"-repeat [int]   : Execute the denoiser N times. Useful for profiling."<<std::endl;
+    std::cout<<"-maxmem [int]   : Maximum memory size used by the denoiser in MB"<<std::endl;
 }
 
 int main(int argc, char *argv[])
@@ -149,6 +150,7 @@ int main(int argc, char *argv[])
     bool hdr = true;
     unsigned int num_runs = 1;
     int num_threads = 0;
+    int maxmem = -1;
     if (argc == 1)
     {
         printParams();
@@ -247,6 +249,13 @@ int main(int argc, char *argv[])
             std::string repeat_string( argv[i] );
             num_runs = std::max(std::stoi(repeat_string), 1);
             std::cout<<"Number of repeats set to "<<num_runs<<std::endl;
+        }
+        else if (arg == "-maxmem")
+        {
+            i++;
+            std::string maxmem_string( argv[i] );
+            maxmem = float(std::stoi(maxmem_string));
+            std::cout<<"Maximum denoiser memory set to "<<maxmem<<"MB"<<std::endl;
         }
         else if (arg == "-h" || arg == "--help")
         {
@@ -422,6 +431,8 @@ int main(int argc, char *argv[])
         filter.setImage("output", (void*)&output_pixels[0], oidn::Format::Float3, b_width, b_height);
 
         filter.set("hdr", hdr);
+        if (maxmem >= 0)
+            filter.set("maxMemoryMB", maxmem);
 
         // Commit changes to the filter
         filter.commit();
