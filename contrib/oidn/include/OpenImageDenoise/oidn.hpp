@@ -1,18 +1,5 @@
-// ======================================================================== //
-// Copyright 2009-2019 Intel Corporation                                    //
-//                                                                          //
-// Licensed under the Apache License, Version 2.0 (the "License");          //
-// you may not use this file except in compliance with the License.         //
-// You may obtain a copy of the License at                                  //
-//                                                                          //
-//     http://www.apache.org/licenses/LICENSE-2.0                           //
-//                                                                          //
-// Unless required by applicable law or agreed to in writing, software      //
-// distributed under the License is distributed on an "AS IS" BASIS,        //
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
-// See the License for the specific language governing permissions and      //
-// limitations under the License.                                           //
-// ======================================================================== //
+// Copyright 2009-2020 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
@@ -21,9 +8,9 @@
 
 namespace oidn {
 
-  // --------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Buffer
-  // --------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   // Formats for images and other data stored in buffers
   enum class Format
@@ -127,9 +114,9 @@ namespace oidn {
     }
   };
 
-  // --------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Filter
-  // --------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   // Progress monitor callback function
   typedef bool (*ProgressMonitorFunction)(void* userPtr, double n);
@@ -228,6 +215,14 @@ namespace oidn {
                                bytePixelStride, byteRowStride);
     }
 
+    // Sets an opaque data parameter of the filter (owned by the user).
+    void setData(const char* name,
+                 void* ptr, size_t byteSize)
+    {
+      oidnSetSharedFilterData(handle, name,
+                              ptr, byteSize);
+    }
+
     // Sets a boolean parameter of the filter.
     void set(const char* name, bool value)
     {
@@ -238,6 +233,12 @@ namespace oidn {
     void set(const char* name, int value)
     {
       oidnSetFilter1i(handle, name, value);
+    }
+
+    // Sets a float parameter of the filter.
+    void set(const char* name, float value)
+    {
+      oidnSetFilter1f(handle, name, value);
     }
 
     // Gets a parameter of the filter.
@@ -277,11 +278,18 @@ namespace oidn {
     return oidnGetFilter1i(handle, name);
   }
 
-  // --------------------------------------------------------------------------
-  // Device
-  // --------------------------------------------------------------------------
+  // Gets a float parameter of the filter.
+  template<>
+  inline float FilterRef::get(const char* name)
+  {
+    return oidnGetFilter1f(handle, name);
+  }
 
-  // Open Image Denoise device types
+  // ---------------------------------------------------------------------------
+  // Device
+  // ---------------------------------------------------------------------------
+
+  // Device types
   enum class DeviceType
   {
     Default = OIDN_DEVICE_TYPE_DEFAULT, // select device automatically
@@ -446,7 +454,7 @@ namespace oidn {
     return oidnGetDevice1i(handle, name);
   }
 
-  // Creates a new Open Image Denoise device.
+  // Creates a new device.
   inline DeviceRef newDevice(DeviceType type = DeviceType::Default)
   {
     return DeviceRef(oidnNewDevice((OIDNDeviceType)type));
