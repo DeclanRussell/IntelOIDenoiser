@@ -1,4 +1,4 @@
-// Copyright 2009-2020 Intel Corporation
+// Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
@@ -6,7 +6,7 @@
 #include <algorithm>
 #include "oidn.h"
 
-namespace oidn {
+OIDN_NAMESPACE_BEGIN
 
   // ---------------------------------------------------------------------------
   // Buffer
@@ -460,4 +460,4 @@ namespace oidn {
     return DeviceRef(oidnNewDevice((OIDNDeviceType)type));
   }
 
-} // namespace oidn
+OIDN_NAMESPACE_END

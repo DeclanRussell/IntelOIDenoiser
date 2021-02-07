@@ -30,8 +30,7 @@ if PLATFORM.name == "win32":
 
 # Copy over the OIDN dlls to the bin directory
 ENV.Command("bin/OpenImageDenoise.dll", "./contrib/oidn/bin/OpenImageDenoise.dll", Copy("$TARGET", "$SOURCE"))
-ENV.Command("bin/tbb.dll", "./contrib/oidn/bin/tbb.dll", Copy("$TARGET", "$SOURCE"))
-ENV.Command("bin/tbbmalloc.dll", "./contrib/oidn/bin/tbbmalloc.dll", Copy("$TARGET", "$SOURCE"))
+ENV.Command("bin/tbb12.dll", "./contrib/oidn/bin/tbb12.dll", Copy("$TARGET", "$SOURCE"))
 
 # Copy all of OIIO many dependancies!
 ENV.Command("bin/boost_atomic-vc141-mt-x64-1_67.dll", "./contrib/OpenImageIO/bin/boost_atomic-vc141-mt-x64-1_67.dll", Copy("$TARGET", "$SOURCE"))
