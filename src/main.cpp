@@ -122,6 +122,12 @@ void errorCallback(void* userPtr, oidn::Error error, const char* message)
     throw std::runtime_error(message);
 }
 
+bool progressCallback(void* userPtr, double n)
+{
+    std::cout<<(int)(n*100.0)<<"% complete"<<std::endl;
+    return true;
+}
+
 void printParams()
 {
     std::cout<<"Command line parameters"<<std::endl;
@@ -418,7 +424,11 @@ int main(int argc, char *argv[])
 
         std::cout<< "Using OIDN version "<<versionMajor<<"."<<versionMinor<<"."<<versionPatch<<std::endl;
 
+        // Create the AI filter
         oidn::FilterRef filter = device.newFilter("RT");
+
+        // Set our progress callback
+        filter.setProgressMonitorFunction((oidn::ProgressMonitorFunction)progressCallback);
 
         // Set our filter paramaters
 
