@@ -179,7 +179,7 @@ void printParams()
     PrintInfo("-n [string]     : path to input normal AOV (optional, requires albedo AOV)");
     PrintInfo("-hdr [int]      : Image is a HDR image. Disabling with will assume the image is in sRGB (default 1 i.e. enabled)");
     PrintInfo("-t [int]        : number of threads to use (defualt is all)");
-    PrintInfo("-affinity [int] : Enable affinity. This pins vertual threads to physical cores and can improve performance (default 0 i.e. disabled)");
+    PrintInfo("-affinity [int] : Enable affinity. This pins virtual threads to physical cores and can improve performance (default 0 i.e. disabled)");
     PrintInfo("-repeat [int]   : Execute the denoiser N times. Useful for profiling.");
     PrintInfo("-maxmem [int]   : Maximum memory size used by the denoiser in MB");
     verbosity = old_verbosity;
