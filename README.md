@@ -6,6 +6,7 @@ Building the source code is pretty simple. The build uses scons so all you need 
 
 ## Usage
 Command line parameters
+* -v [int]        : log verbosity level 0:disabled 1:simple 2:full (default 2)
 * -i [string]     : path to input image
 * -o [string]     : path to output image
 * -a [string]     : path to input albedo AOV (optional)

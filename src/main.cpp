@@ -21,6 +21,43 @@ OIIO::ImageBuf* input_beauty = nullptr;
 OIIO::ImageBuf* input_albedo = nullptr;
 OIIO::ImageBuf* input_normal = nullptr;
 
+// Logging verbosity level
+int verbosity = 2;
+
+// Application start time
+std::chrono::high_resolution_clock::time_point app_start_time;
+
+std::string getTime()
+{
+    std::chrono::duration<double, std::milli> time_span = std::chrono::high_resolution_clock::now() - app_start_time;
+    double milliseconds = time_span.count();
+    int seconds = floor(milliseconds / 1000.0);
+    int minutes = floor((float(seconds) / 60.f));
+    milliseconds -= seconds * 1000.0;
+    seconds -= minutes * 60;
+    char s[9];
+    sprintf(s, "%02d:%02d:%03d", minutes, seconds, (int)milliseconds);
+    return std::string(s);
+}
+
+template<typename... Args>
+void PrintInfo(char *c, Args... args)
+{
+    if (!verbosity)
+        return;
+    char buffer[256];
+    sprintf(buffer, c, args...);
+    std::cout<<getTime()<<"       | "<<buffer<<std::endl;
+}
+
+template<typename... Args>
+void PrintError(char *c, Args... args)
+{
+    char buffer[256];
+    sprintf(buffer, c, args...);
+    std::cerr<<getTime()<<" ERROR | "<<buffer<<std::endl;
+}
+
 #ifdef _WIN32
 int getSysOpType()
 {
@@ -48,7 +85,7 @@ void exitfunc(int exit_code)
         HANDLE tmpHandle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, GetCurrentProcessId());
         if (tmpHandle != NULL)
         {
-            std::cout<<"terminating..."<<std::endl;
+            PrintInfo("terminating...");
             std::this_thread::sleep_for(std::chrono::seconds(1)); // delay 1s
             TerminateProcess(tmpHandle, 0);
         }
@@ -94,7 +131,7 @@ bool convertToFormat(void* in_ptr, void* out_ptr, unsigned int in_channels, unsi
         {
             switch (out_channels)
             {
-                case(1):  memcpy(out_ptr, in_ptr, 1 * sizeof(float));return true;
+                case(1): memcpy(out_ptr, in_ptr, 1 * sizeof(float));return true;
                 case(2): memcpy(out_ptr, in_ptr, 2 * sizeof(float)); return true;
                 case(3):
                 case(4): memcpy(out_ptr, in_ptr, 3 * sizeof(float)); return true;
@@ -124,28 +161,50 @@ void errorCallback(void* userPtr, oidn::Error error, const char* message)
 
 bool progressCallback(void* userPtr, double n)
 {
-    std::cout<<(int)(n*100.0)<<"% complete"<<std::endl;
+    if (verbosity >= 2)
+        PrintInfo("%d%% complete", (int)(n*100.0));
     return true;
 }
 
 void printParams()
 {
-    std::cout<<"Command line parameters"<<std::endl;
-    std::cout<<"-i [string]     : path to input image"<<std::endl;
-    std::cout<<"-o [string]     : path to output image"<<std::endl;
-    std::cout<<"-a [string]     : path to input albedo AOV (optional)"<<std::endl;
-    std::cout<<"-n [string]     : path to input normal AOV (optional, requires albedo AOV)"<<std::endl;
-    std::cout<<"-hdr [int]      : Image is a HDR image. Disabling with will assume the image is in sRGB (default 1 i.e. enabled)"<<std::endl;
-    std::cout<<"-t [int]        : number of threads to use (defualt is all)"<<std::endl;
-    std::cout<<"-affinity [int] : Enable affinity. This pins vertual threads to physical cores and can improve performance (default 0 i.e. disabled)"<<std::endl;
-    std::cout<<"-repeat [int]   : Execute the denoiser N times. Useful for profiling."<<std::endl;
-    std::cout<<"-maxmem [int]   : Maximum memory size used by the denoiser in MB"<<std::endl;
+    // Always print parameters if needed
+    int old_verbosity = verbosity;
+    verbosity = 1;
+    PrintInfo("Command line parameters");
+    PrintInfo("-v [int]        : log verbosity level 0:disabled 1:simple 2:full (default 2)");
+    PrintInfo("-i [string]     : path to input image");
+    PrintInfo("-o [string]     : path to output image");
+    PrintInfo("-a [string]     : path to input albedo AOV (optional)");
+    PrintInfo("-n [string]     : path to input normal AOV (optional, requires albedo AOV)");
+    PrintInfo("-hdr [int]      : Image is a HDR image. Disabling with will assume the image is in sRGB (default 1 i.e. enabled)");
+    PrintInfo("-t [int]        : number of threads to use (defualt is all)");
+    PrintInfo("-affinity [int] : Enable affinity. This pins vertual threads to physical cores and can improve performance (default 0 i.e. disabled)");
+    PrintInfo("-repeat [int]   : Execute the denoiser N times. Useful for profiling.");
+    PrintInfo("-maxmem [int]   : Maximum memory size used by the denoiser in MB");
+    verbosity = old_verbosity;
 }
 
 int main(int argc, char *argv[])
 {
-    std::cout<<"Launching OIDN AI Denoiser command line app v"<<DENOISER_MAJOR_VERSION<<"."<<DENOISER_MINOR_VERSION<<std::endl;
-    std::cout<<"Created by Declan Russell (01/03/2019)"<<std::endl;
+    if (argc > 1)
+    {
+        for (int i=1; i<argc; i++)
+        {
+            if (strcmp(argv[i], "-v"))
+                continue;
+            i++;
+            if (i >= argc)
+            {
+               PrintError("incorrect number of arguments for flag -v");
+            }
+            verbosity = std::stoi(std::string ( argv[i] ));
+            break;
+        }
+    }
+    app_start_time = std::chrono::high_resolution_clock::now();
+    PrintInfo("Launching OIDN AI Denoiser command line app v%d.%d", DENOISER_MAJOR_VERSION, DENOISER_MINOR_VERSION);
+    PrintInfo("Created by Declan Russell (01/03/2019)");
 
     bool b_loaded, n_loaded, a_loaded;
     b_loaded = n_loaded = a_loaded = false;
@@ -169,17 +228,19 @@ int main(int argc, char *argv[])
         {
             i++;
             std::string path( argv[i] );
-            std::cout<<"Input image: "<<path<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo("Input image: %s", path.c_str());
             input_beauty = new OIIO::ImageBuf(path);
             if (input_beauty->init_spec(path, 0, 0))
             {
-                std::cout<<"Loaded successfully"<<std::endl;
+                if (verbosity >= 2)
+                    PrintInfo("Loaded successfully");
                 b_loaded = true;
             }
             else
             {
-                std::cout<<"Failed to load input image"<<std::endl;
-                std::cout<<"[OIIO]: "<<input_beauty->geterror()<<std::endl;
+                PrintError("Failed to load input image");
+                PrintError("[OIIO]: %s", input_beauty->geterror().c_str());
                 cleanup();
                 exitfunc(EXIT_FAILURE);
             }
@@ -188,17 +249,19 @@ int main(int argc, char *argv[])
         {
             i++;
             std::string path( argv[i] );
-            std::cout<<"Normal image: "<<path<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo("Normal image: %s", path.c_str());
             input_normal = new OIIO::ImageBuf(path);
             if (input_normal->init_spec(path, 0, 0))
             {
-                std::cout<<"Loaded successfully"<<std::endl;
+                if (verbosity >= 2)
+                    PrintInfo("Loaded successfully");
                 n_loaded = true;
             }
             else
             {
-                std::cout<<"Failed to load normal image"<<std::endl;
-                std::cout<<"[OIIO]: "<<input_normal->geterror()<<std::endl;
+                PrintError("Failed to load normal image");
+                PrintError("[OIIO]: %s", input_normal->geterror().c_str());
                 cleanup();
                 exitfunc(EXIT_FAILURE);
             }
@@ -207,17 +270,19 @@ int main(int argc, char *argv[])
         {
             i++;
             std::string path( argv[i] );
-            std::cout<<"Albedo image: "<<path<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo("Albedo image: %s", path.c_str());
             input_albedo = new OIIO::ImageBuf(path);
             if (input_albedo->init_spec(path, 0, 0))
             {
-                std::cout<<"Loaded successfully"<<std::endl;
+                if (verbosity >= 2)
+                    PrintInfo("Loaded successfully");
                 a_loaded = true;
             }
             else
             {
-                std::cout<<"Failed to load albedo image"<<std::endl;
-                std::cout<<"[OIIO]: "<<input_albedo->geterror()<<std::endl;
+                PrintError("Failed to load albedo image");
+                PrintError("[OIIO]: %s", input_albedo->geterror().c_str());
                 cleanup();
                 exitfunc(EXIT_FAILURE);
             }
@@ -226,42 +291,48 @@ int main(int argc, char *argv[])
         {
             i++;
             out_path = std::string( argv[i] );
-            std::cout<<"Output image: "<<out_path<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo("Output image: %s", out_path.c_str());
         }
         else if (arg == "-affinity")
         {
             i++;
             std::string affinity_string( argv[i] );
             affinity = std::stoi(affinity_string);
-            std::cout<<((affinity) ? "Affinity enabled" : "Affinity disabled")<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo((affinity) ? "Affinity enabled" : "Affinity disabled");
         }
         else if (arg == "-hdr")
         {
             i++;
             std::string hdr_string( argv[i] );
             hdr = bool(std::stoi(hdr_string));
-            std::cout<<((hdr) ? "HDR training data enabled" : "HDR training data disabled")<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo((hdr) ? "HDR training data enabled" : "HDR training data disabled");
         }
         else if (arg == "-t")
         {
             i++;
             std::string num_threads_string( argv[i] );
             num_threads = std::stoi(num_threads_string);
-            std::cout<<"Number of threads set to "<<num_threads<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo("Number of threads set to %d", num_threads);
         }
         else if (arg == "-repeat")
         {
             i++;
             std::string repeat_string( argv[i] );
             num_runs = std::max(std::stoi(repeat_string), 1);
-            std::cout<<"Number of repeats set to "<<num_runs<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo("Number of repeats set to %d", num_runs);
         }
         else if (arg == "-maxmem")
         {
             i++;
             std::string maxmem_string( argv[i] );
             maxmem = float(std::stoi(maxmem_string));
-            std::cout<<"Maximum denoiser memory set to "<<maxmem<<"MB"<<std::endl;
+            if (verbosity >= 2)
+                PrintInfo("Maximum denoiser memory set to %dMB", maxmem);
         }
         else if (arg == "-h" || arg == "--help")
         {
@@ -272,7 +343,7 @@ int main(int argc, char *argv[])
     // Check if a beauty has been loaded
     if (!b_loaded)
     {
-        std::cerr<<"No input image could be loaded"<<std::endl;
+        PrintError("No input image could be loaded");
         cleanup();
         exitfunc(EXIT_FAILURE);
     }
@@ -280,7 +351,7 @@ int main(int argc, char *argv[])
     // If a normal AOV is loaded then we also require an albedo AOV
     if (n_loaded && !a_loaded)
     {
-        std::cerr<<"You cannot use a normal AOV without an albedo"<<std::endl;
+        PrintError("You cannot use a normal AOV without an albedo");
         cleanup();
         exitfunc(EXIT_FAILURE);
     }
@@ -292,7 +363,7 @@ int main(int argc, char *argv[])
     std::string ext(ext_c);
     if (!ext.size())
     {
-        std::cerr<<"No output file extension"<<std::endl;
+        PrintError("No output file extension");
         cleanup();
         exitfunc(EXIT_FAILURE);
     }
@@ -315,7 +386,7 @@ int main(int argc, char *argv[])
     {
         if (a_width != b_width || a_height != b_height)
         {
-            std::cerr<<"Aldedo image not same resolution as beauty"<<std::endl;
+            PrintError("Aldedo image not same resolution as beauty");
             cleanup();
             exitfunc(EXIT_FAILURE);
         }
@@ -327,7 +398,7 @@ int main(int argc, char *argv[])
     {
         if (n_width != b_width || n_height != b_height)
         {
-            std::cerr<<"Normal image not same resolution as beauty"<<std::endl;
+            PrintError("Normal image not same resolution as beauty");
             cleanup();
             exitfunc(EXIT_FAILURE);
         }
@@ -347,7 +418,7 @@ int main(int argc, char *argv[])
     {
         if (!convertToFormat(in, out, beauty_roi.nchannels(), 3))
         {
-            std::cerr<<"Failed to convert beauty to float3"<<std::endl;
+            PrintError("Failed to convert beauty to float3");
             cleanup();
             exitfunc(EXIT_FAILURE);
         }
@@ -369,7 +440,7 @@ int main(int argc, char *argv[])
         {
             if (!convertToFormat(in, out, albedo_roi.nchannels(), 3))
             {
-                std::cerr<<"Failed to convert albedo to float3"<<std::endl;
+                PrintError("Failed to convert albedo to float3");
                 cleanup();
                 exitfunc(EXIT_FAILURE);
             }
@@ -391,7 +462,7 @@ int main(int argc, char *argv[])
         {
             if (!convertToFormat(in, out, normal_roi.nchannels(), 3))
             {
-                std::cerr<<"Failed to convert normal to float3"<<std::endl;
+                PrintError("Failed to convert normal to float3");
                 cleanup();
                 exitfunc(EXIT_FAILURE);
             }
@@ -403,7 +474,7 @@ int main(int argc, char *argv[])
     // Catch exceptions
     try
     {
-        std::cout<<"Initializing OIDN"<<std::endl;
+        PrintInfo("Initializing OIDN");
         // Create our device
         oidn::DeviceRef device = oidn::newDevice();
         const char* errorMessage;
@@ -422,7 +493,7 @@ int main(int argc, char *argv[])
         const int versionMinor = device.get<int>("versionMinor");
         const int versionPatch = device.get<int>("versionPatch");
 
-        std::cout<< "Using OIDN version "<<versionMajor<<"."<<versionMinor<<"."<<versionPatch<<std::endl;
+        PrintInfo("Using OIDN version %d.%d.%d", versionMajor, versionMinor, versionPatch);
 
         // Create the AI filter
         oidn::FilterRef filter = device.newFilter("RT");
@@ -451,27 +522,27 @@ int main(int argc, char *argv[])
         int sum = 0;
         for (unsigned int i = 0; i < num_runs; i++)
         {
-            std::cout<<"Denoising..."<<std::endl;
+            PrintInfo("Denoising...");
             clock_t start = clock(), diff;
             filter.execute();
             diff = clock() - start;
             int msec = diff * 1000 / CLOCKS_PER_SEC;
             if (num_runs > 1)
-                std::cout<<"Denoising run "<<i<<" complete in "<<msec/1000<<"."<<std::setfill('0')<<std::setw(3)<<msec%1000<<" seconds"<<std::endl;
+                PrintInfo("Denoising run %d complete in %d.%03d seconds", i+1, msec/1000, msec%1000);
             else
-                std::cout<<"Denoising complete in "<<msec/1000<<"."<<std::setfill('0')<<std::setw(3)<<msec%1000<<" seconds"<<std::endl;
+                PrintInfo("Denoising complete in %d.%03d seconds", msec/1000, msec%1000);
             sum += msec;
         }
         if (num_runs > 1)
         {
             sum /= num_runs;
-            std::cout<<"Denoising avg of "<<num_runs<<" complete in "<<sum/1000<<"."<<std::setfill('0')<<std::setw(3)<<sum%1000<<" seconds"<<std::endl;    
+            PrintInfo("Denoising avg of %d complete in %d.%03d seconds", num_runs, sum/1000, sum%1000);
         }
 
     }
     catch (const std::exception& e)
     {
-        std::cerr<<"[OIDN]: "<<e.what()<<std::endl;
+        PrintError("[OIDN]: %s", e.what());
         cleanup();
         exitfunc(EXIT_FAILURE);
     }
@@ -488,7 +559,7 @@ int main(int argc, char *argv[])
     {
         if (!convertToFormat(in, out, 3, beauty_roi.nchannels()))
         {
-            std::cerr<<"Failed to convert output to original format"<<std::endl;
+            PrintError("Failed to convert output to original format");
             cleanup();
             exitfunc(EXIT_FAILURE);
         }
@@ -498,16 +569,16 @@ int main(int argc, char *argv[])
 
     // Set our OIIO pixels
     if (!input_beauty->set_pixels(beauty_roi, OIIO::TypeDesc::FLOAT, &beauty_pixels[0]))
-        std::cerr<<"Something went wrong setting pixels"<<std::endl;
+        PrintError("Something went wrong setting pixels");
 
     // Save the output image
-    std::cout<<"Saving to: "<<out_path<<std::endl;
+    PrintInfo("Saving to: %s", out_path.c_str());
     if (input_beauty->write(out_path))
-        std::cout<<"Done!"<<std::endl;
+        PrintInfo("Done!");
     else
     {
-        std::cerr<<"Could not save file "<<out_path<<std::endl;
-        std::cerr<<"[OIIO]: "<<input_beauty->geterror()<<std::endl;
+        PrintError("Could not save file %s", out_path.c_str());
+        PrintError("[OIIO]: %s", input_beauty->geterror().c_str());
     }
 
     cleanup();
