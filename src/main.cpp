@@ -14,7 +14,7 @@
 #endif
 
 #define DENOISER_MAJOR_VERSION 1
-#define DENOISER_MINOR_VERSION 5
+#define DENOISER_MINOR_VERSION 6
 
 // Our global image handles
 OIIO::ImageBuf* input_beauty = nullptr;
@@ -182,6 +182,7 @@ void printParams()
     PrintInfo("-affinity [int] : Enable affinity. This pins virtual threads to physical cores and can improve performance (default 0 i.e. disabled)");
     PrintInfo("-repeat [int]   : Execute the denoiser N times. Useful for profiling.");
     PrintInfo("-maxmem [int]   : Maximum memory size used by the denoiser in MB");
+    PrintInfo("-clean_aux [int]: Whether the auxiliary feature (albedo, normal) images are noise-free; recommended for highest quality but should *not* be enabled for noisy auxiliary images to avoid residual noise (default 0 i.e. disabled)");
     verbosity = old_verbosity;
 }
 
@@ -216,6 +217,7 @@ int main(int argc, char *argv[])
     unsigned int num_runs = 1;
     int num_threads = 0;
     int maxmem = -1;
+    bool clean_aux = false;
     if (argc == 1)
     {
         printParams();
@@ -333,6 +335,14 @@ int main(int argc, char *argv[])
             maxmem = float(std::stoi(maxmem_string));
             if (verbosity >= 2)
                 PrintInfo("Maximum denoiser memory set to %dMB", maxmem);
+        }
+        else if (arg == "-clean_aux")
+        {
+            i++;
+            std::string clean_aux_string( argv[i] );
+            clean_aux = bool(std::stoi(clean_aux_string));
+            if (verbosity >= 2)
+                PrintInfo((clean_aux) ? "cleanAux enabled" : "cleanAux disabled");
         }
         else if (arg == "-h" || arg == "--help")
         {
@@ -514,6 +524,7 @@ int main(int argc, char *argv[])
         filter.set("hdr", hdr);
         if (maxmem >= 0)
             filter.set("maxMemoryMB", maxmem);
+        filter.set("cleanAux", clean_aux);
 
         // Commit changes to the filter
         filter.commit();
