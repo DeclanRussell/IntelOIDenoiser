@@ -8,7 +8,7 @@ if 'CUDA_PATH' in os.environ:
 else:
     CUDA_INCLUDE_PATH = ""
 
-ENV = Environment(CPPPATH = ['.', "./contrib/"+PLATFORM.name+"/oidn/include", "./contrib/win/OpenImageIO/include" if PLATFORM.name == "win32" else "", CUDA_INCLUDE_PATH
+ENV = Environment(CPPPATH = ['.', "./contrib/"+PLATFORM.name+"/oidn/include", "./contrib/win/OpenImageIO/include" if PLATFORM.name == "win32" else "", CUDA_INCLUDE_PATH, "/opt/homebrew/include" if PLATFORM.name == "darwin" else ""
 ],
                   CCFLAGS="-std=c++11"+ (" /EHsc" if PLATFORM.name == "win32" else ""))
 
@@ -24,7 +24,8 @@ if PLATFORM.name == "win32":
     LIBPATH.append("./contrib/win/OpenImageIO/lib")
 elif PLATFORM.name == "darwin":
     LIBPATH.append("./contrib/darwin/oidn/lib")
-
+    LIBPATH.append("/opt/homebrew/lib")
+    
 LIBS = []
 LIBS.append("OpenImageDenoise")
 LIBS.append("OpenImageIO")
@@ -76,7 +77,12 @@ if PLATFORM.name == "win32":
     ENV.Command("bin/tiffxx.dll", "./contrib/win/OpenImageIO/bin/tiffxx.dll", Copy("$TARGET","$SOURCE"))
     ENV.Command("bin/turbojpeg.dll", "./contrib/win/OpenImageIO/bin/turbojpeg.dll", Copy("$TARGET","$SOURCE"))
     ENV.Command("bin/zlib1.dll", "./contrib/win/OpenImageIO/bin/zlib1.dll", Copy("$TARGET","$SOURCE"))
-
+elif PLATFORM.name == "darwin":
+    ENV.Command("bin/libOpenImageDenoise.1.4.0.dylib", "./contrib/darwin/oidn/lib/libOpenImageDenoise.1.4.0.dylib", Copy("$TARGET","$SOURCE"))
+    ENV.Command("bin/libOpenImageDenoise.1.dylib", "./contrib/darwin/oidn/lib/libOpenImageDenoise.1.dylib", Copy("$TARGET","$SOURCE"))
+    ENV.Command("bin/libOpenImageDenoise.dylib", "./contrib/darwin/oidn/lib/libOpenImageDenoise.dylib", Copy("$TARGET","$SOURCE"))
+    
+    
 program = ENV.Program(target="bin/Denoiser", source=SOURCES,
                               LIBPATH=LIBPATH, LIBS=LIBS, LINKFLAGS=LINKFLAGS)
 
