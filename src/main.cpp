@@ -1,8 +1,8 @@
 
 #include <OpenImageDenoise/oidn.hpp>
 #include <iostream>
-#include <OpenImageIO\imageio.h>
-#include <OpenImageIO\imagebuf.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
 #include <stdio.h>
 #include <exception>
 #include <time.h>
@@ -35,13 +35,13 @@ std::string getTime()
     int minutes = floor((float(seconds) / 60.f));
     milliseconds -= seconds * 1000.0;
     seconds -= minutes * 60;
-    char s[9];
+    char s[10];
     sprintf(s, "%02d:%02d:%03d", minutes, seconds, (int)milliseconds);
     return std::string(s);
 }
 
 template<typename... Args>
-void PrintInfo(char *c, Args... args)
+void PrintInfo(const char *c, Args... args)
 {
     if (!verbosity)
         return;
@@ -51,7 +51,7 @@ void PrintInfo(char *c, Args... args)
 }
 
 template<typename... Args>
-void PrintError(char *c, Args... args)
+void PrintError(const char *c, Args... args)
 {
     char buffer[256];
     sprintf(buffer, c, args...);
