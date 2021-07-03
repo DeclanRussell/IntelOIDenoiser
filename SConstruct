@@ -8,7 +8,7 @@ if 'CUDA_PATH' in os.environ:
 else:
     CUDA_INCLUDE_PATH = ""
 
-ENV = Environment(CPPPATH = ['.', "./contrib/"+PLATFORM.name+"/oidn/include", "./contrib/win/OpenImageIO/include" if PLATFORM.name == "win32" else "", CUDA_INCLUDE_PATH, "/opt/homebrew/include" if PLATFORM.name == "darwin" else ""
+ENV = Environment(CPPPATH = ['.', "./contrib/win/oidn/include" if PLATFORM.name == "win32" else "./contrib/"+PLATFORM.name+"/oidn/include", "./contrib/win/OpenImageIO/include" if PLATFORM.name == "win32" else "", CUDA_INCLUDE_PATH, "/opt/homebrew/include" if PLATFORM.name == "darwin" else ""
 ],
                   CCFLAGS="-std=c++11"+ (" /EHsc" if PLATFORM.name == "win32" else ""))
 
