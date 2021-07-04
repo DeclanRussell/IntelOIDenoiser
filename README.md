@@ -12,6 +12,7 @@ Command line parameters
 * -a [string]     : path to input albedo AOV (optional)
 * -n [string]     : path to input normal AOV (optional, requires albedo AOV)
 * -hdr [int]      : Image is a HDR image. Disabling with will assume the image is in sRGB (default 1 i.e. enabled)
+* -srgb [int]     : whether the main input image is encoded with the sRGB (or 2.2 gamma) curve (LDR only) or is linear (default 0 i.e. disabled)
 * -t [int]        : number of threads to use (defualt is all)
 * -affinity [int] : Enable affinity. This pins virtual threads to physical cores and can improve performance (default 0 i.e. disabled)
 * -repeat [int]   : Execute the denoiser N times. Useful for profiling.

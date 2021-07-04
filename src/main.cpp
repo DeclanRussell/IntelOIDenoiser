@@ -178,6 +178,7 @@ void printParams()
     PrintInfo("-a [string]     : path to input albedo AOV (optional)");
     PrintInfo("-n [string]     : path to input normal AOV (optional, requires albedo AOV)");
     PrintInfo("-hdr [int]      : Image is a HDR image. Disabling with will assume the image is in sRGB (default 1 i.e. enabled)");
+    PrintInfo("-srgb [int]     : whether the main input image is encoded with the sRGB (or 2.2 gamma) curve (LDR only) or is linear (default 0 i.e. disabled)");
     PrintInfo("-t [int]        : number of threads to use (defualt is all)");
     PrintInfo("-affinity [int] : Enable affinity. This pins virtual threads to physical cores and can improve performance (default 0 i.e. disabled)");
     PrintInfo("-repeat [int]   : Execute the denoiser N times. Useful for profiling.");
@@ -214,6 +215,7 @@ int main(int argc, char *argv[])
     std::string out_path;
     bool affinity = false;
     bool hdr = true;
+    bool srgb = false;
     unsigned int num_runs = 1;
     int num_threads = 0;
     int maxmem = -1;
@@ -311,6 +313,19 @@ int main(int argc, char *argv[])
             hdr = bool(std::stoi(hdr_string));
             if (verbosity >= 2)
                 PrintInfo((hdr) ? "HDR training data enabled" : "HDR training data disabled");
+            if (!hdr)
+            {
+                PrintInfo("Enabling sRGB mode due to LDR");
+                srgb = true;
+            }
+        }
+        else if (arg == "-srgb")
+        {
+            i++;
+            std::string srgb_string( argv[i] );
+            srgb = bool(std::stoi(srgb_string));
+            if (verbosity >= 2)
+                PrintInfo((srgb) ? "sRGB mode enabled" : "sRGB mode disabled");
         }
         else if (arg == "-t")
         {
@@ -348,6 +363,12 @@ int main(int argc, char *argv[])
         {
             printParams();
         }
+    }
+
+    if (verbosity && srgb && hdr)
+    {
+        PrintInfo("Disbaling sRGB, incompatble with HDR input");
+        srgb = false;
     }
 
     // Check if a beauty has been loaded
@@ -522,6 +543,7 @@ int main(int argc, char *argv[])
         filter.setImage("output", (void*)&output_pixels[0], oidn::Format::Float3, b_width, b_height);
 
         filter.set("hdr", hdr);
+        filter.set("srgb", srgb);
         if (maxmem >= 0)
             filter.set("maxMemoryMB", maxmem);
         filter.set("cleanAux", clean_aux);
