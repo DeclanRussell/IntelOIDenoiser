@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (verbosity && srgb && hdr)
+    if (srgb && hdr)
     {
         PrintInfo("Disbaling sRGB, incompatble with HDR input");
         srgb = false;
