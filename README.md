@@ -2,7 +2,16 @@
 
 This is a simple implementation of Intels [Open Image AI denoiser](https://github.com/OpenImageDenoise/oidn). This is essentially an implmentation of the example executable provided in the original repository but instead uses OIIO so that a larger variety of image formats are supports. You can find a pre-built windows distribution in the releases tab of this repro.
 
-Building the source code is pretty simple. The build uses scons so all you need to do is install scons and run it with the Sconstruct in the root of the directory.
+## Building
+The build uses CMake and [Conan](https://conan.io/) to pull in the OpenImageIO dependency. The Intel Open Image Denoise (OIDN) library is downloaded automatically from its [GitHub releases](https://github.com/RenderKit/oidn/releases) during the CMake configure step (the version is controlled by the `OIDN_VERSION` CMake cache variable, default `2.5.0`).
+```
+python3 -m pip install conan
+conan profile detect --force
+conan install . --build=missing -s:h compiler.cppstd=20 -s:b compiler.cppstd=20
+cmake -S . -B build -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_TOOLCHAIN_FILE=build/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./out
+cmake --build build --config Release
+cmake --install build --config Release
+```
 
 ## Usage
 Command line parameters

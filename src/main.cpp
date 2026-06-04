@@ -506,8 +506,10 @@ int main(int argc, char *argv[])
     try
     {
         PrintInfo("Initializing OIDN");
-        // Create our device
-        oidn::DeviceRef device = oidn::newDevice();
+        // Create our device. We explicitly request the CPU device: the app feeds
+        // OIDN shared images backed by host (OIIO) memory, which GPU devices can't
+        // access. OIDN >= 2.0 would otherwise auto-select a GPU back-end if present.
+        oidn::DeviceRef device = oidn::newDevice(oidn::DeviceType::CPU);
         const char* errorMessage;
         if (device.getError(errorMessage) != oidn::Error::None)
            throw std::runtime_error(errorMessage);

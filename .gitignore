@@ -44,3 +44,8 @@ Makefile*
 
 # QtCtreator CMake
 CMakeLists.txt.user*
+
+# CMake / Conan build output
+/build
+/out
+CMakeUserPresets.json
