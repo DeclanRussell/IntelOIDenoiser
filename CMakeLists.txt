@@ -6,7 +6,10 @@ include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
-# OpenImageIO is provided by Conan (see conanfile.txt).
+# OpenImageIO is provided by Conan (see conanfile.txt). The CMakeDeps generator
+# writes its config package into the build tree (referenced via
+# CMAKE_TOOLCHAIN_FILE / CMAKE_PREFIX_PATH), exposing the imported targets
+# OpenImageIO::OpenImageIO and OpenImageIO::OpenImageIO_Util.
 find_package(OpenImageIO CONFIG REQUIRED)
 
 # Intel Open Image Denoise (OIDN) is downloaded as a pre-built release from
@@ -23,6 +26,12 @@ elseif(APPLE)
 else()
     set(OIDN_PKG "oidn-${OIDN_VERSION}.x86_64.linux")
     set(OIDN_ARCHIVE "${OIDN_PKG}.tar.gz")
+    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_HAVE_THREADS_LIBRARY 1)
+    set(CMAKE_USE_WIN32_THREADS_INIT 0)
+    set(CMAKE_USE_PTHREADS_INIT 1)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
 endif()
 
 set(OIDN_DOWNLOAD_DIR "${CMAKE_BINARY_DIR}/oidn")
@@ -54,8 +63,7 @@ endif()
 
 find_package(OpenImageDenoise REQUIRED)
 
-message(STATUS "Found OpenImageIO: ${OpenImageIO_DIR}"
-               " (includes: ${OpenImageIO_INCLUDE_DIRS}, library: ${OpenImageIO_LIBRARIES})")
+message(STATUS "Found OpenImageIO ${OpenImageIO_VERSION}: ${OpenImageIO_DIR}")
 message(STATUS "Found OpenImageDenoise:"
                " (includes: ${OIDN_INCLUDE_DIRS}, library: ${OIDN_LIBRARIES})")
 
@@ -69,10 +77,13 @@ if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
 endif()
 
-# Link libraries
+# Link libraries. The OpenImageIO imported targets carry their own include
+# directories and transitive dependencies, so no manual paths are needed.
 target_link_libraries(${PROJECT_NAME}
                       OpenImageDenoise::OpenImageDenoise
-                      openimageio::openimageio)
+                      OpenImageIO::OpenImageIO
+                      OpenImageIO::OpenImageIO_Util
+                      ${CMAKE_DL_LIBS})
 
 # Collect the OIDN runtime libraries (the API stub plus its device back-ends and
 # TBB) so they can sit next to the executable.
@@ -87,6 +98,12 @@ else()
     else()
         set_target_properties(${PROJECT_NAME} PROPERTIES
             BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN")
+        # Emit old-style DT_RPATH instead of DT_RUNPATH. DT_RUNPATH is not
+        # applied to transitive (indirect) dependencies, so the executable's
+        # $ORIGIN would not be searched when libOpenImageDenoise.so loads its
+        # own back-end libraries (libOpenImageDenoise_core.so, etc.) that sit
+        # beside the binary. DT_RPATH is honoured transitively and fixes this.
+        target_link_options(${PROJECT_NAME} PRIVATE "-Wl,--disable-new-dtags")
     endif()
 endif()
 

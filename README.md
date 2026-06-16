@@ -12,6 +12,24 @@ cmake -S . -B build -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_TOOLCHAIN_FILE=bu
 cmake --build build --config Release
 cmake --install build --config Release
 ```
+OpenImageIO 3.x (which Conan resolves for the `>=2.4 <4` range) requires **C++17 or newer** and a reasonably modern compiler, so `compiler.cppstd=20` above is mandatory — an older default profile (e.g. `gnu14`) makes Conan reject `openimageio`, `opencolorio` and friends as invalid.
+
+### Linux (RHEL 8 / older system GCC)
+The system GCC 8 cannot build the OpenEXR/OpenImageIO stack (its `std::filesystem` is incomplete). Build with a newer toolchain, e.g. `gcc-toolset-11`:
+```
+sudo dnf install gcc-toolset-11 gcc-toolset-11-libatomic-devel libatomic
+source /opt/rh/gcc-toolset-11/enable
+conan profile detect --force          # now detects gcc 11
+conan install . --build=missing -s compiler.cppstd=20
+```
+The `gcc-toolset-11-libatomic-devel` package is needed because OpenImageIO's command line tools link `-latomic`; without it the build fails at the final link with `cannot find -latomic`. If you cannot install that package but do have the base `libatomic` runtime, point the linker at a directory containing only a `libatomic.so` symlink (do **not** add a whole system GCC lib dir to `-L`, or it will shadow the toolset's `libstdc++` and break the link with errors like `undefined reference to std::__throw_bad_array_new_length()`):
+```
+mkdir -p ~/.local/lib/oiio-atomic
+ln -sf /usr/lib64/libatomic.so.1.2.0 ~/.local/lib/oiio-atomic/libatomic.so
+conan install . --build=missing -s compiler.cppstd=20 \
+  -c tools.build:exelinkflags="['-L$HOME/.local/lib/oiio-atomic']" \
+  -c tools.build:sharedlinkflags="['-L$HOME/.local/lib/oiio-atomic']"
+```
 
 ## Usage
 Command line parameters

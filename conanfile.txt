@@ -10,3 +10,10 @@ cmake_layout
 
 [options]
 openimageio/*:shared=False
+# This tool only reads/writes still images, so the video stack is not needed.
+# Disabling ffmpeg drops its dependency chain (opus, vaapi/libva, etc.) which
+# otherwise fails to build on Linux.
+openimageio/*:with_ffmpeg=False
+# NOTE: the option is "with_libheif" in OIIO 3.x ("with_heif" is silently
+# ignored). HEIF pulls in libde265/x265 and is not needed for still images.
+openimageio/*:with_libheif=False
